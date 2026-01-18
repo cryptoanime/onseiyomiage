@@ -165,7 +165,9 @@ const clearFallback = () => {
 const startFallbackHighlight = (text) => {
   clearFallback();
   const rate = Number(rateInput.value) || 1;
-  const intervalMs = Math.max(40, 120 / rate);
+  const charsPerSec = 5;
+  const rawInterval = 1000 / (charsPerSec * rate);
+  const intervalMs = Math.min(360, Math.max(120, rawInterval));
   let index = 0;
   fallbackTimer = setInterval(() => {
     renderPreview(text, index);
