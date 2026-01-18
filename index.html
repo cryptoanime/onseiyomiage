@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ことば読み上げ</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <header class="hero">
+        <p class="eyebrow"></p>
+        <h1>音声読み上げ</h1>
+        <p class="lead small"></p>
+      </header>
+
+      <section class="panel">
+        <label class="field">
+          <span>読み上げたい文章</span>
+          <textarea
+            id="textInput"
+            placeholder="例）今日は**いい天気**！ https://example.com"
+            rows="6"
+          ></textarea>
+        </label>
+        <div class="controls">
+          <label class="field">
+            <span>音声の種類</span>
+            <select id="voiceSelect"></select>
+          </label>
+          <label class="field">
+            <span>速さ <strong id="rateValue">1.0</strong></span>
+            <input id="rateInput" type="range" min="0.6" max="1.6" step="0.1" value="1.0" />
+          </label>
+          <label class="field">
+            <span>高さ <strong id="pitchValue">1.0</strong></span>
+            <input id="pitchInput" type="range" min="0.6" max="1.4" step="0.1" value="1.0" />
+          </label>
+        </div>
+        <div class="meta">
+          <div>
+            <span class="label">プレビュー</span>
+            <p id="preview" class="preview">ここに読み上げ内容が表示されます</p>
+          </div>
+          <div class="note"></div>
+        </div>
+      </section>
+    </main>
+
+    <button id="speakBtn" class="speak-fab" aria-label="読み上げる">読み上げ</button>
+    <button id="stopBtn" class="stop-fab" aria-label="停止">停止</button>
+
+    <div class="glow" aria-hidden="true"></div>
+    <script src="app.js"></script>
+  </body>
+</html>
