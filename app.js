@@ -382,3 +382,11 @@ rateInput.value = loadSetting("rateValue", rateInput.value);
 pitchInput.value = loadSetting("pitchValue", pitchInput.value);
 updateSliderLabels();
 updatePreview();
+
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("sw.js").catch(() => {
+      // ignore registration errors
+    });
+  });
+}

@@ -1,0 +1,16 @@
+{
+  "name": "音声読み上げ",
+  "short_name": "読み上げ",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#fff7ef",
+  "theme_color": "#ff6b35",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
