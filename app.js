@@ -53,6 +53,7 @@ let restoreScrollTimer = null;
 let lastHighlightText = "";
 let lastHighlightIndex = null;
 let lastHighlightSentenceIndex = null;
+let lastRenderedSentenceIndex = null;
 
 const splitSentences = (text) => {
   const sentences = [];
@@ -112,6 +113,10 @@ const renderPreview = (
       : highlightIndex !== null && highlightIndex >= 0
         ? getSentenceIndexForChar(sentences, highlightIndex)
         : -1;
+  if (!forceScroll && currentIndex === lastRenderedSentenceIndex) {
+    return;
+  }
+  lastRenderedSentenceIndex = currentIndex;
   const chunks = sentences.map((sentence, idx) => {
     const safeSentence = escapeHtml(sentence.value);
     if (currentIndex === -1) {
@@ -142,6 +147,7 @@ const updatePreview = () => {
   const start = input.selectionStart ?? 0;
   const end = input.selectionEnd ?? start;
   const cleaned = end > start ? getFromCursorText() : getFullText();
+  lastRenderedSentenceIndex = null;
   renderPreview(cleaned);
 };
 
@@ -212,6 +218,7 @@ const startFallbackHighlight = (text) => {
       clearFallback();
       return;
     }
+    lastRenderedSentenceIndex = null;
     renderPreview(text, sentence.start, false, index);
     const charsPerSec = 2.2;
     const ms = Math.max(700, (sentence.value.length / (charsPerSec * rate)) * 1000);
@@ -241,6 +248,7 @@ const speakText = (text, voices) => {
     lastHighlightText = text;
     lastHighlightIndex = 0;
     lastHighlightSentenceIndex = 0;
+    lastRenderedSentenceIndex = null;
     renderPreview(text, 0, false, 0);
     setTimeout(() => {
       if (!boundaryHit) startFallbackHighlight(text);
@@ -252,6 +260,9 @@ const speakText = (text, voices) => {
     lastHighlightText = text;
     lastHighlightIndex = event.charIndex;
     const sentenceIndex = getSentenceIndexForChar(sentences, event.charIndex);
+    if (sentenceIndex === lastHighlightSentenceIndex) {
+      return;
+    }
     lastHighlightSentenceIndex = sentenceIndex;
     renderPreview(text, event.charIndex, false, sentenceIndex);
   };
@@ -260,6 +271,7 @@ const speakText = (text, voices) => {
     lastHighlightText = text;
     lastHighlightIndex = null;
     lastHighlightSentenceIndex = null;
+    lastRenderedSentenceIndex = null;
     renderPreview(text);
   };
   utter.onerror = () => {
@@ -267,6 +279,7 @@ const speakText = (text, voices) => {
     lastHighlightText = text;
     lastHighlightIndex = null;
     lastHighlightSentenceIndex = null;
+    lastRenderedSentenceIndex = null;
     renderPreview(text);
   };
   window.speechSynthesis.speak(utter);
