@@ -52,13 +52,35 @@ let suppressAutoScroll = false;
 let restoreScrollTimer = null;
 let lastHighlightText = "";
 let lastHighlightIndex = null;
+let lastHighlightSentenceIndex = null;
+
+const splitSentences = (text) => {
+  const sentences = [];
+  const regex = /[^。！？!?\n]+[。！？!?]?/g;
+  let match;
+  while ((match = regex.exec(text))) {
+    const value = match[0];
+    const start = match.index;
+    const end = start + value.length;
+    sentences.push({ value, start, end });
+  }
+  return sentences.length ? sentences : [{ value: text, start: 0, end: text.length }];
+};
+
+const getSentenceIndexForChar = (sentences, index) =>
+  sentences.findIndex((sentence) => index >= sentence.start && index < sentence.end);
 
 const scheduleAutoScrollRestore = () => {
   if (restoreScrollTimer) clearTimeout(restoreScrollTimer);
   restoreScrollTimer = setTimeout(() => {
     suppressAutoScroll = false;
     if (lastHighlightText && lastHighlightIndex !== null) {
-      renderPreview(lastHighlightText, lastHighlightIndex, true);
+      renderPreview(
+        lastHighlightText,
+        lastHighlightIndex,
+        true,
+        lastHighlightSentenceIndex
+      );
     }
   }, 5000);
 };
@@ -73,20 +95,37 @@ const isElementVisibleWithin = (element, container) => {
   );
 };
 
-const renderPreview = (text, highlightIndex = null, forceScroll = false) => {
+const renderPreview = (
+  text,
+  highlightIndex = null,
+  forceScroll = false,
+  highlightSentenceIndex = null
+) => {
   if (!text) {
     preview.textContent = "ここに読み上げ内容が表示されます";
     return;
   }
-  const safeText = escapeHtml(text);
-  if (highlightIndex === null || highlightIndex < 0) {
-    preview.innerHTML = `<span class="read">${safeText}</span>`;
-    return;
-  }
-  const before = safeText.slice(0, highlightIndex);
-  const current = safeText.slice(highlightIndex, highlightIndex + 1);
-  const after = safeText.slice(highlightIndex + 1);
-  preview.innerHTML = `<span class="read">${before}</span><span class="highlight">${current}</span><span class="unread">${after}</span>`;
+  const sentences = splitSentences(text);
+  const currentIndex =
+    highlightSentenceIndex !== null && highlightSentenceIndex >= 0
+      ? highlightSentenceIndex
+      : highlightIndex !== null && highlightIndex >= 0
+        ? getSentenceIndexForChar(sentences, highlightIndex)
+        : -1;
+  const chunks = sentences.map((sentence, idx) => {
+    const safeSentence = escapeHtml(sentence.value);
+    if (currentIndex === -1) {
+      return `<span class="read">${safeSentence}</span>`;
+    }
+    if (idx < currentIndex) {
+      return `<span class="read">${safeSentence}</span>`;
+    }
+    if (idx === currentIndex) {
+      return `<span class="highlight">${safeSentence}</span>`;
+    }
+    return `<span class="unread">${safeSentence}</span>`;
+  });
+  preview.innerHTML = chunks.join("");
   const target = preview.querySelector(".highlight");
   if (!target) return;
   if (!forceScroll && suppressAutoScroll) return;
@@ -157,7 +196,7 @@ let fallbackTimer = null;
 
 const clearFallback = () => {
   if (fallbackTimer) {
-    clearInterval(fallbackTimer);
+    clearTimeout(fallbackTimer);
     fallbackTimer = null;
   }
 };
@@ -165,17 +204,21 @@ const clearFallback = () => {
 const startFallbackHighlight = (text) => {
   clearFallback();
   const rate = Number(rateInput.value) || 1;
-  const charsPerSec = 2.5;
-  const rawInterval = 1000 / (charsPerSec * rate);
-  const intervalMs = Math.min(360, Math.max(120, rawInterval));
+  const sentences = splitSentences(text);
   let index = 0;
-  fallbackTimer = setInterval(() => {
-    renderPreview(text, index);
-    index += 1;
-    if (index >= text.length) {
+  const step = () => {
+    const sentence = sentences[index];
+    if (!sentence) {
       clearFallback();
+      return;
     }
-  }, intervalMs);
+    renderPreview(text, sentence.start, false, index);
+    const charsPerSec = 2.2;
+    const ms = Math.max(700, (sentence.value.length / (charsPerSec * rate)) * 1000);
+    index += 1;
+    fallbackTimer = setTimeout(step, ms);
+  };
+  step();
 };
 
 const speakText = (text, voices) => {
@@ -193,10 +236,12 @@ const speakText = (text, voices) => {
   if (selected) utter.voice = selected;
 
   let boundaryHit = false;
+  const sentences = splitSentences(text);
   utter.onstart = () => {
     lastHighlightText = text;
     lastHighlightIndex = 0;
-    renderPreview(text, 0);
+    lastHighlightSentenceIndex = 0;
+    renderPreview(text, 0, false, 0);
     setTimeout(() => {
       if (!boundaryHit) startFallbackHighlight(text);
     }, 300);
@@ -206,18 +251,22 @@ const speakText = (text, voices) => {
     clearFallback();
     lastHighlightText = text;
     lastHighlightIndex = event.charIndex;
-    renderPreview(text, event.charIndex);
+    const sentenceIndex = getSentenceIndexForChar(sentences, event.charIndex);
+    lastHighlightSentenceIndex = sentenceIndex;
+    renderPreview(text, event.charIndex, false, sentenceIndex);
   };
   utter.onend = () => {
     clearFallback();
     lastHighlightText = text;
     lastHighlightIndex = null;
+    lastHighlightSentenceIndex = null;
     renderPreview(text);
   };
   utter.onerror = () => {
     clearFallback();
     lastHighlightText = text;
     lastHighlightIndex = null;
+    lastHighlightSentenceIndex = null;
     renderPreview(text);
   };
   window.speechSynthesis.speak(utter);
