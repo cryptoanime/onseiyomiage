@@ -220,8 +220,8 @@ const startFallbackHighlight = (text) => {
     }
     lastRenderedSentenceIndex = null;
     renderPreview(text, sentence.start, false, index);
-    const charsPerSec = 2.2;
-    const ms = Math.max(700, (sentence.value.length / (charsPerSec * rate)) * 1000);
+    const charsPerSec = 4.0;
+    const ms = Math.max(350, (sentence.value.length / (charsPerSec * rate)) * 1000);
     index += 1;
     fallbackTimer = setTimeout(step, ms);
   };
